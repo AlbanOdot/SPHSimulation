@@ -152,7 +152,7 @@ void keyboardCallback(unsigned char key, int x, int y)
 #endif
       break;
 
-    case '=':
+    case '+':
       particleSystem->surfaceThreshold += 0.1;
       cout << "surface threshold: " << particleSystem->surfaceThreshold << endl;
       break;

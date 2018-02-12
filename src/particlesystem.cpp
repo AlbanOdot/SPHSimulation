@@ -41,9 +41,9 @@ void particlesystem::loadScenario(int newScenario) {
         generateDamParticleSet();
     }
     else if (newScenario == SCENARIO_CUBE) {
-        dt = 5.f/1000.f;
-        particleMass = 0.02;
-        viscosity = 3;
+        dt = 0.02;
+        particleMass = 0.002;
+        viscosity = 1.2;
         generateCubeParticleSet();
 
     }
@@ -55,9 +55,6 @@ void particlesystem::loadScenario(int newScenario) {
     }
     else if(newScenario == SCENARIO_RAIN) {
         srand(time(NULL));
-        //        dt = 5.f/1000.f;
-        //        particleMass = 0.01;
-        //        viscosity = 15;
         dt = 5.f/1000.f;
         particleMass = 0.02;
         viscosity = 15;
@@ -304,14 +301,8 @@ void particlesystem::stepVerlet(){
                     particle& nextParticle = next.at(p);
                     particle& oldParticle = old.at(p);
                     //Position and velocity update
-                    //halfVelocity = oldParticle.velocity() + (dt_over_2 * oldParticle.acceleration());
-                    //nextParticle.setPosition(oldParticle.position() + (dt * halfVelocity));
-                    //nextParticle.setVelocity(halfVelocity + (dt_over_2 * nextParticle.acceleration()));
                     nextParticle.setVelocity(oldParticle.velocity() + (nextParticle.acceleration()  * dt));
                     nextParticle.setPosition(oldParticle.position() + nextParticle.velocity() * dt );
-
-
-
                 }
             }
         }
@@ -355,7 +346,7 @@ void particlesystem::accelerationComputation() {
                     VEC3F gradient;
                     VEC3F laplacian;
                     float coefpi = nextParticle.pressure() / (nextParticle.density() * nextParticle.density());
-                    VEC3F curvature;
+                    float curvature;
                     unsigned int numberCloseNeighbor = 0;
                     for(int zz = z - 1; zz <= z + 1; ++zz)
                     {
@@ -399,10 +390,6 @@ void particlesystem::accelerationComputation() {
                         }
                     }
 
-                    //next.size() gives less good results
-                    nextParticle.splash() = numberCloseNeighbor < 2;
-                    nextParticle.flag() |= nextParticle.splash();
-
                     /* BODY FORCES */
                     //pressure gradient
                     nextParticle.addForce(-1.f * particleMass * gradient * nextParticle.density());
@@ -424,13 +411,18 @@ void particlesystem::accelerationComputation() {
                     if( nextParticle.flag() = (mag > surfaceThreshold) )
                     {
                         nextParticle.surfaceTension() = (-SURFACE_TENSION * curvature / mag) * nextParticle.normal();
+                    }else{
+                        nextParticle.surfaceTension() = VEC3F();
                     }
+                    nextParticle.splash() = numberCloseNeighbor < 2;
+                    nextParticle.flag() |= nextParticle.splash();
                 }
             }
         }
     }
     smoothTension();
     surfaceThreshold = nextThreshold / static_cast<float>(particle::count);
+    cout << surfaceThreshold << endl;
 }
 
 void particlesystem::collisionForce(particle& p, VEC3F& f_collision){
