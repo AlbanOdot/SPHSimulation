@@ -76,6 +76,7 @@ public:
     void generateCubeParticleSet();
 
     void generateDamParticleSet();
+    void fatCube();
 
     void makeItRain();
 
@@ -86,7 +87,7 @@ public:
     void accelerationComputation();
 
     void smoothTension();
-
+    float C( float);
     //setters
     inline void scenario(const int scenario){ _scenario = scenario;}
 
@@ -96,7 +97,7 @@ public:
 
     FIELD_3D* grid;
     FIELD_3D* nextGrid;
-    float surfaceThreshold = 19.;
+    float surfaceThreshold;
     VEC3F gravityVector;
 
 

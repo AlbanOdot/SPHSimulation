@@ -35,7 +35,6 @@ public:
   VEC3F operator-(const VEC3F &b) const { return VEC3F(x-b.x,y-b.y,z-b.z); }
   VEC3F operator*(const float b) const { return VEC3F(x*b,y*b,z*b); }
   VEC3F operator/(const float b) const { return VEC3F(x/b,y/b,z/b); }
-  
   // this computes the cross product
   VEC3F operator^(const VEC3F &v) const { return VEC3F(y*v.z-v.y*z,-x*v.z+v.x*z,x*v.y-v.x*y); }
   

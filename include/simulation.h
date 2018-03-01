@@ -7,5 +7,6 @@
 #define SCENARIO_FAUCET   1
 #define SCENARIO_CUBE     2
 #define SCENARIO_RAIN     3
+#define SCENARIO_FATCUBE  4
 
 #endif

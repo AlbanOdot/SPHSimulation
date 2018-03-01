@@ -202,6 +202,11 @@ void keyboardCallback(unsigned char key, int x, int y)
       particleSystem->scenario(SCENARIO_RAIN);
       particleSystem->loadScenario(SCENARIO_RAIN);
       break;
+  case '5':
+    iterationCount = 0;
+    particleSystem->scenario(SCENARIO_FATCUBE);
+    particleSystem->loadScenario(SCENARIO_FATCUBE);
+    break;
     case 'f':
       cout << "*** "<< (double)iterationCount/arUtilTimer() << "(frame/sec)\n"<<endl;
       break;
@@ -224,7 +229,7 @@ void glutMouseMotion(int x, int y)
 {
   glvup.Motion(x,y);
   glvuVec3f viewVector = glvup.GetCurrentCam()->Y;
-  particleSystem->setGravityVectorWithViewVector(VEC3F(viewVector[0],viewVector[1],viewVector[2]));
+  //particleSystem->setGravityVectorWithViewVector(VEC3F(viewVector[0],viewVector[1],viewVector[2]));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

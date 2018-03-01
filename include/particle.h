@@ -91,7 +91,6 @@ private:
   float _mass;
   bool _flag;
   bool _splash;
-  //bool _partDensityUpdate;
   int _id;
   GLUquadricObj* myQuadric;
     

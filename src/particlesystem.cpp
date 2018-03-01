@@ -10,7 +10,7 @@ int scenario;
 // Constructor
 ///////////////////////////////////////////////////////////////////////////////
 particlesystem::particlesystem() :
-    _isGridVisible(false), surfaceThreshold(0.01), gravityVector(0.0,GRAVITY_ACCELERATION,0.0), grid(NULL), nextGrid(NULL), boundary()
+    _isGridVisible(false), surfaceThreshold(20), gravityVector(0.0,GRAVITY_ACCELERATION,0.0), grid(NULL), nextGrid(NULL), boundary()
 {
     loadScenario(INITIAL_SCENARIO);
 
@@ -20,6 +20,7 @@ void particlesystem::loadScenario(int newScenario) {
     // remove all particles
     if (grid) delete grid;
     if (nextGrid) delete nextGrid;
+    surfaceThreshold = 20.f;
     _walls.clear();
     // reset params
     particle::count = 0;
@@ -34,6 +35,7 @@ void particlesystem::loadScenario(int newScenario) {
     boundary.createwall(BOX_SIZE, h, _walls);
     grid = new FIELD_3D(gridXRes, gridYRes, gridZRes);
     nextGrid = new FIELD_3D(gridXRes, gridYRes, gridZRes);
+
     if (newScenario == SCENARIO_DAM) {
         dt = 5.0f/1000.f;
         particleMass = 0.02;
@@ -41,9 +43,9 @@ void particlesystem::loadScenario(int newScenario) {
         generateDamParticleSet();
     }
     else if (newScenario == SCENARIO_CUBE) {
-        dt = 5.f/1000.f;
-        particleMass = 0.02;
-        viscosity = 3;
+        dt = 2.f/1000.f;
+        particleMass = 0.005;
+        viscosity = 0.2;
         generateCubeParticleSet();
 
     }
@@ -55,14 +57,17 @@ void particlesystem::loadScenario(int newScenario) {
     }
     else if(newScenario == SCENARIO_RAIN) {
         srand(time(NULL));
-        //        dt = 5.f/1000.f;
-        //        particleMass = 0.01;
-        //        viscosity = 15;
         dt = 5.f/1000.f;
         particleMass = 0.02;
         viscosity = 15;
         gravityVector *= 0.01;
         makeItRain();
+    }
+    else if(newScenario == SCENARIO_FATCUBE){
+        dt = 5.f/1000.f;
+        particleMass = 0.02;
+        viscosity = 1.645;
+        fatCube();
     }
 
     updateGrid();
@@ -128,6 +133,23 @@ void particlesystem::makeItRain(){
                     );
 }
 
+void particlesystem::fatCube(){
+    // add boundary condition
+    const float step =  0.5 * h ;
+    for(float xPos =   - boxSize.y; xPos < boxSize.y ; xPos += step)
+    {
+        for(float yPos =   - boxSize.y; yPos < boxSize.y ; yPos += step)
+        {
+            for(float zPos =   - boxSize.y; zPos < boxSize.y ; zPos += step )
+            {
+                addParticle(VEC3F(xPos,yPos,zPos));
+            }
+        }
+    }
+    cout << "Loaded fat cube scenario" << endl;
+    cout << "Grid size is " << (*grid).xRes() << "x" << (*grid).yRes() << "x" << (*grid).zRes() << endl;
+    cout << "Simulating " << particle::count << " particles" << endl;
+}
 void particlesystem::addParticle(const VEC3F& position, const VEC3F& velocity) {
     particle *part = new particle(position, velocity);
     (*grid)(0,0,0).push_back(*part);
@@ -304,9 +326,6 @@ void particlesystem::stepVerlet(){
                     particle& nextParticle = next.at(p);
                     particle& oldParticle = old.at(p);
                     //Position and velocity update
-                    //halfVelocity = oldParticle.velocity() + (dt_over_2 * oldParticle.acceleration());
-                    //nextParticle.setPosition(oldParticle.position() + (dt * halfVelocity));
-                    //nextParticle.setVelocity(halfVelocity + (dt_over_2 * nextParticle.acceleration()));
                     nextParticle.setVelocity(oldParticle.velocity() + (nextParticle.acceleration()  * dt));
                     nextParticle.setPosition(oldParticle.position() + nextParticle.velocity() * dt );
 
@@ -351,11 +370,11 @@ void particlesystem::accelerationComputation() {
                     particle& nextParticle = next.at(p);
                     particle& oldParticle = old.at(p);
                     nextParticle.clearForce();
-                    nextParticle.normal() *= 0;
+                    nextParticle.normal() *= 0.;
                     VEC3F gradient;
                     VEC3F laplacian;
                     float coefpi = nextParticle.pressure() / (nextParticle.density() * nextParticle.density());
-                    VEC3F curvature;
+                    float curvature;
                     unsigned int numberCloseNeighbor = 0;
                     for(int zz = z - 1; zz <= z + 1; ++zz)
                     {
@@ -385,23 +404,22 @@ void particlesystem::accelerationComputation() {
                                         float overDens = (1.f / nextneighbor.density());
                                         float coefpj = nextneighbor.pressure() * overDens * overDens;
 
+                                        //pressure n visco
                                         VEC3F currentGradient;
                                         WspikyGradient(diffPos,distSquared,currentGradient);
                                         gradient += ( coefpi + coefpj ) * currentGradient;
+                                        laplacian += ( WviscosityLaplacian(distSquared) * overDens ) * ( neighbor.velocity() - oldParticle.velocity() );
 
-                                        float visLap = WviscosityLaplacian(distSquared);
-                                        laplacian += ( visLap * overDens ) * ( neighbor.velocity() - oldParticle.velocity() );
-                                        nextParticle.normal() += (1.f / nextneighbor.density()) * currentGradient;
-                                        curvature += overDens * visLap;
+                                        //normal and curvature
+                                        VEC3F tensionGrad;
+                                        Wpoly6Gradient(diffPos,distSquared,tensionGrad);
+                                        nextParticle.normal() += nextneighbor.density() * tensionGrad;
+                                        curvature += overDens * Wpoly6Laplacian(distSquared);
                                     }
                                 }
                             }
                         }
                     }
-
-                    //next.size() gives less good results
-                    nextParticle.splash() = numberCloseNeighbor < 2;
-                    nextParticle.flag() |= nextParticle.splash();
 
                     /* BODY FORCES */
                     //pressure gradient
@@ -410,26 +428,31 @@ void particlesystem::accelerationComputation() {
                     nextParticle.addForce(viscosity * particleMass * laplacian);
                     //gravity
                     nextParticle.addForce(gravityVector * nextParticle.density());
-                    nextParticle.setAcceleration(nextParticle.force() / nextParticle.density());
 
-                    VEC3F collision;
-                    collisionForce(oldParticle,collision);
-                    nextParticle.setAcceleration(nextParticle.acceleration() + collision);
-
-                    //Surface tension
                     nextParticle.normal() *= particleMass;
+                    curvature *= particleMass;
                     float mag = nextParticle.normal().magnitude();
                     nextThreshold += mag;
-                    //Here we compute the surface tension then we smooth it in the next function
+
                     if( nextParticle.flag() = (mag > surfaceThreshold) )
                     {
-                        nextParticle.surfaceTension() = (-SURFACE_TENSION * curvature / mag) * nextParticle.normal();
+                        nextParticle.addForce( (-SURFACE_TENSION * curvature ) * nextParticle.normal() / mag);
                     }
+
+                    //next.size() gives less good results
+                    nextParticle.splash() = numberCloseNeighbor < 2;
+                    nextParticle.flag() |= nextParticle.splash();
+
+                    //Comment those 4 lines if you uncomment smoothTension() below
+                    //VEC3F collision;
+                    //collisionForce(oldParticle,collision);
+                    //nextParticle.addForce(collision * nextParticle.density());
+                    nextParticle.setAcceleration(( 1.f / nextParticle.density()) * nextParticle.force());
                 }
             }
         }
     }
-    smoothTension();
+    //smoothTension();
     surfaceThreshold = nextThreshold / static_cast<float>(particle::count);
 }
 
@@ -491,10 +514,8 @@ void particlesystem::densityAndPressureComputation(){
                         }
                     }
                     newDensity *= particleMass;
-                    //nextParticle.setDensity( newDensity > CRITICAL_DENSITY ? newDensity : REST_DENSITY);
-                    nextParticle.setDensity( newDensity);
-                    //nextParticle.setPressure(GAS_STIFFNESS * (std::pow(nextParticle.density() / REST_DENSITY, 7) - 1));
-                    float press = GAS_STIFFNESS * (nextParticle.density() - REST_DENSITY);
+                    nextParticle.setDensity( newDensity );
+                    float press = GAS_STIFFNESS * ( nextParticle.density() - REST_DENSITY);
                     nextParticle.setPressure( press > 0 ? press : 0);
                 }
             }
@@ -505,6 +526,7 @@ void particlesystem::densityAndPressureComputation(){
 
 void particlesystem::smoothTension(){
     static double h2 = h*h;
+    static double GAMMA = 1.f;
 #pragma omp parallel for
     for(int z = 0; z < grid->zRes(); ++z )
     {
@@ -520,8 +542,6 @@ void particlesystem::smoothTension(){
                 {
                     particle nextParticle = next.at(p);
                     particle oldParticle = old.at(p);
-                    float totalWeight = 0.f;
-                    VEC3F totalTension;
 
                     for(int zz = z - 1; zz <= z + 1; ++zz)
                     {
@@ -546,16 +566,24 @@ void particlesystem::smoothTension(){
                                         float distSquared = diffPos.dot(diffPos);
                                         if( h2 <= distSquared )
                                             continue;
-                                        float weight = Wpoly6(distSquared);
-                                        totalWeight += weight;
-                                        totalTension += nextneighbor.surfaceTension();
+                                        //Toutes les particules ont la même masse donc on multiplie ma mass^2 apres
+                                        VEC3F cohesiv = C(diffPos.magnitude()) * diffPos.normalize();
+                                        VEC3F curvature = nextParticle.normal() - nextneighbor.normal();
+                                        //                                                            K_ij                                  * -gamma * m_i ( Fcurv + m_j * Fcohesiv)
+                                        nextParticle.surfaceTension() += (REST_DENSITY / (nextneighbor.density() + nextParticle.density())) * ( curvature + particleMass * cohesiv);
                                     }
                                 }
                             }
                         }
                     }
                     //Actual surface tension force after being smoothed by the neighborhood
-                    nextParticle.setAcceleration( nextParticle.acceleration() + ( totalTension/ totalWeight));
+                    nextParticle.addForce( (-GAMMA * particleMass) * nextParticle.surfaceTension());
+
+                    VEC3F collision;
+                    collisionForce(oldParticle, collision);
+                    nextParticle.addForce(collision * nextParticle.density());
+
+                    nextParticle.setAcceleration(nextParticle.force() / nextParticle.density());
                 }
             }
         }
@@ -593,4 +621,15 @@ float particlesystem::WviscosityLaplacian(float radiusSquared) {
     static float coefficient = 45.0/(M_PI*pow(h,6));
     float radius = sqrt(radiusSquared);
     return coefficient * (h - radius);
+}
+
+float particlesystem::C( float r){
+    static float h6 = std::pow(h,6);
+    static float coef = 32.f / ( M_PI * h6 * h * h * h );
+    static float hmr3 = h-r * h-r * h-r;
+    if( 2*r > h && r <= h)
+        return hmr3 * r * r * r * coef;
+    if( r > 0 && 2 * r <= h)
+        return 2 * hmr3 * r * r * r - (h6 / 64.f);
+    return 0.f;
 }
