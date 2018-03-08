@@ -371,10 +371,12 @@ void particlesystem::accelerationComputation() {
                     particle& oldParticle = old.at(p);
                     nextParticle.clearForce();
                     nextParticle.normal() *= 0.;
+                    if(nextParticle.id() == 10)
+                        std::cout << nextParticle.normal()<<std::endl;
                     VEC3F gradient;
                     VEC3F laplacian;
                     float coefpi = nextParticle.pressure() / (nextParticle.density() * nextParticle.density());
-                    float curvature;
+                    float curvature = 0;
                     unsigned int numberCloseNeighbor = 0;
                     for(int zz = z - 1; zz <= z + 1; ++zz)
                     {
@@ -413,7 +415,8 @@ void particlesystem::accelerationComputation() {
                                         //normal and curvature
                                         VEC3F tensionGrad;
                                         Wpoly6Gradient(diffPos,distSquared,tensionGrad);
-                                        nextParticle.normal() += nextneighbor.density() * tensionGrad;
+
+                                        nextParticle.normal() += overDens * tensionGrad;
                                         curvature += overDens * Wpoly6Laplacian(distSquared);
                                     }
                                 }
@@ -433,8 +436,8 @@ void particlesystem::accelerationComputation() {
                     curvature *= particleMass;
                     float mag = nextParticle.normal().magnitude();
                     nextThreshold += mag;
-
-                    if( nextParticle.flag() = (mag > surfaceThreshold) )
+                    //std::cout << mag << std::endl;
+                    if( nextParticle.flag() = (mag > surfaceThreshold ) )
                     {
                         nextParticle.addForce( (-SURFACE_TENSION * curvature ) * nextParticle.normal() / mag);
                     }
@@ -444,9 +447,9 @@ void particlesystem::accelerationComputation() {
                     nextParticle.flag() |= nextParticle.splash();
 
                     //Comment those 4 lines if you uncomment smoothTension() below
-                    //VEC3F collision;
-                    //collisionForce(oldParticle,collision);
-                    //nextParticle.addForce(collision * nextParticle.density());
+                    VEC3F collision;
+                    collisionForce(oldParticle,collision);
+                    nextParticle.addForce(collision * nextParticle.density());
                     nextParticle.setAcceleration(( 1.f / nextParticle.density()) * nextParticle.force());
                 }
             }
@@ -576,6 +579,7 @@ void particlesystem::smoothTension(){
                             }
                         }
                     }
+
                     //Actual surface tension force after being smoothed by the neighborhood
                     nextParticle.addForce( (-GAMMA * particleMass) * nextParticle.surfaceTension());
 

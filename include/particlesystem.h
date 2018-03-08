@@ -26,7 +26,7 @@
 #define BOX_SIZE 0.4
 #define MAX_PARTICLES 5000
 
-#define INITIAL_SCENARIO SCENARIO_FAUCET
+#define INITIAL_SCENARIO SCENARIO_CUBE
 
 using namespace std;
 
