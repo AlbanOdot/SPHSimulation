@@ -43,9 +43,15 @@ void particlesystem::loadScenario(int newScenario) {
         generateDamParticleSet();
     }
     else if (newScenario == SCENARIO_CUBE) {
+<<<<<<< HEAD
         dt = 2.f/1000.f;
         particleMass = 0.005;
         viscosity = 0.2;
+=======
+        dt = 0.02;
+        particleMass = 0.002;
+        viscosity = 1.2;
+>>>>>>> 31b61470faf0cdf12c05d3fac75db3379d2a4d80
         generateCubeParticleSet();
 
     }
@@ -328,9 +334,6 @@ void particlesystem::stepVerlet(){
                     //Position and velocity update
                     nextParticle.setVelocity(oldParticle.velocity() + (nextParticle.acceleration()  * dt));
                     nextParticle.setPosition(oldParticle.position() + nextParticle.velocity() * dt );
-
-
-
                 }
             }
         }
@@ -376,7 +379,11 @@ void particlesystem::accelerationComputation() {
                     VEC3F gradient;
                     VEC3F laplacian;
                     float coefpi = nextParticle.pressure() / (nextParticle.density() * nextParticle.density());
+<<<<<<< HEAD
                     float curvature = 0;
+=======
+                    float curvature;
+>>>>>>> 31b61470faf0cdf12c05d3fac75db3379d2a4d80
                     unsigned int numberCloseNeighbor = 0;
                     for(int zz = z - 1; zz <= z + 1; ++zz)
                     {
@@ -439,6 +446,7 @@ void particlesystem::accelerationComputation() {
                     //std::cout << mag << std::endl;
                     if( nextParticle.flag() = (mag > surfaceThreshold ) )
                     {
+<<<<<<< HEAD
                         nextParticle.addForce( (-SURFACE_TENSION * curvature ) * nextParticle.normal() / mag);
                     }
 
@@ -451,12 +459,21 @@ void particlesystem::accelerationComputation() {
                     collisionForce(oldParticle,collision);
                     nextParticle.addForce(collision * nextParticle.density());
                     nextParticle.setAcceleration(( 1.f / nextParticle.density()) * nextParticle.force());
+=======
+                        nextParticle.surfaceTension() = (-SURFACE_TENSION * curvature / mag) * nextParticle.normal();
+                    }else{
+                        nextParticle.surfaceTension() = VEC3F();
+                    }
+                    nextParticle.splash() = numberCloseNeighbor < 2;
+                    nextParticle.flag() |= nextParticle.splash();
+>>>>>>> 31b61470faf0cdf12c05d3fac75db3379d2a4d80
                 }
             }
         }
     }
     //smoothTension();
     surfaceThreshold = nextThreshold / static_cast<float>(particle::count);
+    cout << surfaceThreshold << endl;
 }
 
 void particlesystem::collisionForce(particle& p, VEC3F& f_collision){

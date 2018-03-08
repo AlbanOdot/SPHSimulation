@@ -10,7 +10,7 @@
 #endif
 
 #include "particle.h"
-#include "VEC3F.h"
+#include "vec3f.h"
 #include "field_3D.h"
 
 using namespace std;
