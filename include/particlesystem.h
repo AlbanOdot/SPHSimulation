@@ -24,7 +24,7 @@
 #define WALL_DAMPING -0.9 // wall damping constant
 
 #define BOX_SIZE 0.4
-#define MAX_PARTICLES 5000
+#define MAX_PARTICLES 10000
 
 #define INITIAL_SCENARIO SCENARIO_CUBE
 

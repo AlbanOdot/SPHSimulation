@@ -94,7 +94,7 @@ void particle::draw()
     }
     else {
         if( _flag && isSurfaceVisible)
-            glutWireSphere(PARTICLE_DRAW_RADIUS, 5, 5);
+            glutSolidSphere(PARTICLE_DRAW_RADIUS, 10, 10);
         else
             glutSolidSphere(PARTICLE_DRAW_RADIUS, 10, 10);
 

@@ -43,9 +43,9 @@ void particlesystem::loadScenario(int newScenario) {
         generateDamParticleSet();
     }
     else if (newScenario == SCENARIO_CUBE) {
-        dt = 2.f/1000.f;
-        particleMass = 0.005;
-        viscosity = 0.2;
+        dt = 2.0f/1000.f;
+        particleMass = 0.002;
+        viscosity = 3.0;
         generateCubeParticleSet();
 
     }
@@ -64,9 +64,9 @@ void particlesystem::loadScenario(int newScenario) {
         makeItRain();
     }
     else if(newScenario == SCENARIO_FATCUBE){
-        dt = 5.f/1000.f;
-        particleMass = 0.02;
-        viscosity = 1.645;
+        dt = 2.f/1000.f;
+        particleMass = 0.005;
+        viscosity = 5.0;
         fatCube();
     }
 
@@ -136,11 +136,11 @@ void particlesystem::makeItRain(){
 void particlesystem::fatCube(){
     // add boundary condition
     const float step =  0.5 * h ;
-    for(float xPos =   - boxSize.y; xPos < boxSize.y ; xPos += step)
+    for(float xPos =   - 0.5 *boxSize.z; xPos < 0.5 *boxSize.z ; xPos += step)
     {
-        for(float yPos =   - boxSize.y; yPos < boxSize.y ; yPos += step)
+        for(float yPos =   0.75 * boxSize.y; yPos < 1.25 *boxSize.y ; yPos += step)
         {
-            for(float zPos =   - boxSize.y; zPos < boxSize.y ; zPos += step )
+            for(float zPos =   - 0.5 * boxSize.z; zPos < 0.5 *boxSize.z ; zPos += step)
             {
                 addParticle(VEC3F(xPos,yPos,zPos));
             }
@@ -335,10 +335,14 @@ void particlesystem::stepVerlet(){
             }
         }
     }
-    if( _scenario == SCENARIO_FAUCET && particle::count < MAX_PARTICLES && frameCount % 5 == 0)//&& frameCount % 5 == 0
+    if( _scenario == SCENARIO_FAUCET && particle::count < MAX_PARTICLES && frameCount % 5 == 0){//&& frameCount % 5 == 0
         generateFaucetParticleSet();
+        if(frameCount % 40 == 0)
+            std::cout << "Particle count : " << particle::count<<std::endl;
+    }
     else if( _scenario == SCENARIO_RAIN && particle::count < MAX_PARTICLES && frameCount % 20 == 0)//&& frameCount % 5 == 0
         makeItRain();
+
     std::swap(grid,nextGrid);
     updateGrid();
     ++frameCount;
@@ -371,8 +375,6 @@ void particlesystem::accelerationComputation() {
                     particle& oldParticle = old.at(p);
                     nextParticle.clearForce();
                     nextParticle.normal() *= 0.;
-                    if(nextParticle.id() == 10)
-                        std::cout << nextParticle.normal()<<std::endl;
                     VEC3F gradient;
                     VEC3F laplacian;
                     float coefpi = nextParticle.pressure() / (nextParticle.density() * nextParticle.density());
@@ -436,7 +438,6 @@ void particlesystem::accelerationComputation() {
                     curvature *= particleMass;
                     float mag = nextParticle.normal().magnitude();
                     nextThreshold += mag;
-                    //std::cout << mag << std::endl;
                     if( nextParticle.flag() = (mag > surfaceThreshold ) )
                     {
                         nextParticle.addForce( (-SURFACE_TENSION * curvature ) * nextParticle.normal() / mag);
@@ -447,9 +448,11 @@ void particlesystem::accelerationComputation() {
                     nextParticle.flag() |= nextParticle.splash();
 
                     //Comment those 4 lines if you uncomment smoothTension() below
+
                     VEC3F collision;
                     collisionForce(oldParticle,collision);
                     nextParticle.addForce(collision * nextParticle.density());
+
                     nextParticle.setAcceleration(( 1.f / nextParticle.density()) * nextParticle.force());
                 }
             }
