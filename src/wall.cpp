@@ -22,7 +22,7 @@ void wall::createwall( double boundarysize, double k , vector<wall>& _walls)
 {
     // prepare the 3d grid dimension
     VEC3F boxSize;
-    FIELD_3D* grid;
+    FIELD_3D<>* grid;
 
     boxSize.x = boundarysize*2.0;
     boxSize.y = boundarysize;
@@ -32,7 +32,7 @@ void wall::createwall( double boundarysize, double k , vector<wall>& _walls)
     int gridYRes = (int)ceil(boxSize.y/k);
     int gridZRes = (int)ceil(boxSize.z/k);
 
-    grid = new FIELD_3D(gridXRes, gridYRes, gridZRes);
+    grid = new FIELD_3D<>(gridXRes, gridYRes, gridZRes);
 
    _walls.push_back(wall(VEC3F(0,0,1), VEC3F(0,0,-boxSize.z/2.0)));  // back
    _walls.push_back(wall(VEC3F(0,0,-1), VEC3F(0,0,boxSize.z/2.0)));  // front

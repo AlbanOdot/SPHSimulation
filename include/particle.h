@@ -13,6 +13,9 @@
 #include <vector>
 #include <iostream>
 
+#define PARTICLE_DRAW_RADIUS 0.015 //0.015//0.01 //
+#define h 0.0457
+
 using namespace std;
 
 class particle {
@@ -22,6 +25,7 @@ public:
   static bool isSurfaceVisible;
   static bool showArrows;
   static bool showSplash;
+  static bool display;
   
   //static unsigned int count;
   particle();

@@ -10,7 +10,7 @@ int scenario;
 // Constructor
 ///////////////////////////////////////////////////////////////////////////////
 particlesystem::particlesystem() :
-    _isGridVisible(false), surfaceThreshold(20), gravityVector(0.0,GRAVITY_ACCELERATION,0.0), grid(NULL), nextGrid(NULL), boundary()
+    _isGridVisible(false),_marchingGrid(false), surfaceThreshold(20), gravityVector(0.0,GRAVITY_ACCELERATION,0.0), grid(NULL), nextGrid(NULL), boundary()
 {
     loadScenario(INITIAL_SCENARIO);
 
@@ -33,8 +33,9 @@ void particlesystem::loadScenario(int newScenario) {
     int gridYRes = (int)ceil(boxSize.y/h);
     int gridZRes = (int)ceil(boxSize.z/h);
     boundary.createwall(BOX_SIZE, h, _walls);
-    grid = new FIELD_3D(gridXRes, gridYRes, gridZRes);
-    nextGrid = new FIELD_3D(gridXRes, gridYRes, gridZRes);
+    grid = new FIELD_3D<>(gridXRes, gridYRes, gridZRes);
+    nextGrid = new FIELD_3D<>(gridXRes, gridYRes, gridZRes);
+    surfaceGrid = new FIELD_3D<MarchingPoint>( gridXRes, gridYRes, gridZRes);
 
     if (newScenario == SCENARIO_DAM) {
         dt = 5.0f/1000.f;
@@ -52,7 +53,7 @@ void particlesystem::loadScenario(int newScenario) {
     else if (newScenario == SCENARIO_FAUCET) {
         dt = 5.f/1000.f;
         particleMass = 0.02;
-        viscosity = 1.645;
+        viscosity = 0.8;
         generateFaucetParticleSet();
     }
     else if(newScenario == SCENARIO_RAIN) {
@@ -71,6 +72,7 @@ void particlesystem::loadScenario(int newScenario) {
     }
 
     updateGrid();
+    generateSurfaceGrid();
 
 }
 
@@ -79,9 +81,12 @@ void particlesystem::generateDamParticleSet()
 
     // add boundary condition
     const float step = 0.5 * h;
-    for(float xPos = 0.5 * (step - boxSize.x) ; xPos <  - 5 * step; xPos += step){
-        for(float yPos = 0.5 * (boxSize.y - step); yPos > -0.5 * (boxSize.y - step ); yPos -= step){
-            for(float zPos =  0.5 * (step - boxSize.z); zPos < 0.5 * (boxSize.z - 0.5 * step); zPos += step ){
+    for(float xPos = 0.5 * (step - boxSize.x) ; xPos <  - 5 * step; xPos += step)
+    {
+        for(float yPos = 0.5 * (boxSize.y - step); yPos > -0.5 * (boxSize.y - step ); yPos -= step)
+        {
+            for(float zPos =  0.5 * (step - boxSize.z); zPos < 0.5 * (boxSize.z - 0.5 * step); zPos += step )
+            {
                 addParticle(VEC3F(xPos,yPos,zPos));
             }
         }
@@ -189,6 +194,15 @@ void particlesystem::toggleArrows() {
     particle::showArrows = !particle::showArrows;
 }
 
+void particlesystem::toggleMarchingGrid(){
+    _marchingGrid = !_marchingGrid;
+}
+
+void particlesystem::toogleMarchingCube(){
+    _marchingCube = !_marchingCube;
+    particle::display = !particle::display;
+}
+
 void particlesystem::setGravityVectorWithViewVector(VEC3F viewVector) {
     if (_tumble)
         gravityVector = viewVector * GRAVITY_ACCELERATION;
@@ -206,13 +220,13 @@ void particlesystem::updateGrid() {
             for(int x = 0; x < grid->xRes(); ++x)
             {
 
-                vector<particle>& particlesNext = (*nextGrid)(x,y,z);
-                vector<particle>& particles = (*grid)(x,y,z);
+                auto& particlesNext = (*nextGrid)(x,y,z);
+                auto& particles = (*grid)(x,y,z);
                 //On hash avec les données de New
                 for (int p = 0; p < particlesNext.size(); p++)
                 {
 
-                    particle& particle = particlesNext[p];
+                    auto& particle = particlesNext[p];
 
                     int newGridCellX = (int)floor((particle.position().x+BOX_SIZE/2.0)/h);
                     int newGridCellY = (int)floor((particle.position().y+BOX_SIZE/2.0)/h);
@@ -247,6 +261,36 @@ void particlesystem::updateGrid() {
 
 
 }
+
+void particlesystem::generateSurfaceGrid()
+{
+    int count = 0;
+    const float step = PARTICLE_DRAW_RADIUS;
+    for( float xPos = -0.9* boxSize.x; xPos <=  0.9 * boxSize.x; xPos += step)
+    {
+        for( float yPos = -0.5 * boxSize.y; yPos <= 1.75 * boxSize.y; yPos += step)
+        {
+            for( float zPos = -1.7 * boxSize.z; zPos <= 1.9 * boxSize.z; zPos += step )
+            {
+                auto p = MarchingPoint( xPos, yPos, zPos);
+                int cellX = (int)floor((p.getPosition().x+BOX_SIZE/2.0)/h);
+                int cellY = (int)floor((p.getPosition().y+BOX_SIZE/2.0)/h);
+                int cellZ = (int)floor((p.getPosition().z+BOX_SIZE/2.0)/h);
+                cellX = cellX < 0 ? 0 : cellX >= (*surfaceGrid).xRes() ? (*surfaceGrid).xRes() - 1 : cellX;
+                cellY = cellY < 0 ? 0 : cellY >= (*surfaceGrid).yRes() ? (*surfaceGrid).yRes() - 1 : cellY;
+                cellZ = cellZ < 0 ? 0 : cellZ >= (*surfaceGrid).zRes() ? (*surfaceGrid).zRes() - 1 : cellZ;
+                // move the particle to the new grid cell
+                #pragma omp critical
+                {
+                    (*surfaceGrid)(cellX, cellY, cellZ).push_back(std::move(p));
+                }
+                ++count;
+            }
+        }
+    }
+    std::cout << "number of marching point is : "<<count<<std::endl;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // OGL drawing
@@ -297,6 +341,32 @@ void particlesystem::draw()
         }
 
     }
+    if (_marchingGrid) {
+        glPointSize(3.f);
+        glBegin(GL_POINTS);
+        // draw the grid
+        //float offset = -BOX_SIZE/2.0+h/2.0;
+        for(int z = 0; z < surfaceGrid->zRes(); ++z )
+        {
+            for(int y = 0; y < surfaceGrid->yRes(); ++y)
+            {
+                for(int x = 0; x < surfaceGrid->xRes(); ++x)
+                {
+                    auto& mvec = (*surfaceGrid)(x,y,z);
+                    for(auto& mp : mvec){
+                        //glColor3fv(mp.getColor());
+                        glColor3fv(VEC3F(x,y,z) / VEC3F(surfaceGrid->xRes()-1,surfaceGrid->yRes()-1,surfaceGrid->zRes()-1));
+                        glPushMatrix();
+                        glVertex3f(mp.getPosition().x,
+                                   mp.getPosition().y,
+                                   mp.getPosition().z);
+                        glPopMatrix();
+                    }
+                }
+            }
+        }
+    glEnd();
+    }
     glColor3fv(greyColor);
     glPopMatrix();
     glScaled(boxSize.x, boxSize.y, boxSize.z);
@@ -304,6 +374,47 @@ void particlesystem::draw()
     glPopMatrix();
 }
 
+void particlesystem::computeSurface()
+{
+    static float h2 = h*h;
+    #pragma omp parallel for
+    for(int z = 0; z < surfaceGrid->zRes(); ++z )
+    {
+        for(int y = 0; y < surfaceGrid->yRes(); ++y)
+        {
+            for(int x = 0; x < surfaceGrid->xRes(); ++x)
+            {
+                vector<MarchingPoint>& mvec = (*surfaceGrid)(x,y,z);
+                for(MarchingPoint& mp : mvec)
+                {
+                    float color = 0.0;
+                    for(int zz = z - 1; zz <= z + 1; ++zz)
+                    {
+                        for(int yy = y - 1; yy <= y + 1; ++yy)
+                        {
+                            for(int xx = x - 1; xx <= x + 1; ++xx)
+                            {
+                                if( xx >= 0 &&  xx < grid->xRes() && yy >= 0 && yy < grid->yRes() && zz >= 0 && zz < grid->zRes())
+                                {
+                                    vector<particle>& neighborhood = (*grid)(xx,yy,zz);
+                                    for(particle& neighbor : neighborhood)
+                                    {
+                                        VEC3F diffPos = mp.getPosition() - neighbor.position();
+                                        float distSquared = diffPos.dot(diffPos);
+                                        if( h2 <= distSquared )
+                                            continue;
+                                        color += neighbor.density() * Wpoly6(distSquared);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    mp.updateColorInfo(color);
+                }
+            }
+        }
+    }
+}
 ///////////////////////////////////////////////////////////////////////////////
 // Verlet integration
 ///////////////////////////////////////////////////////////////////////////////
@@ -328,25 +439,28 @@ void particlesystem::stepVerlet(){
                     //Position and velocity update
                     nextParticle.setVelocity(oldParticle.velocity() + (nextParticle.acceleration()  * dt));
                     nextParticle.setPosition(oldParticle.position() + nextParticle.velocity() * dt );
-
-
-
                 }
             }
         }
     }
+
     if( _scenario == SCENARIO_FAUCET && particle::count < MAX_PARTICLES && frameCount % 5 == 0){//&& frameCount % 5 == 0
         generateFaucetParticleSet();
-        if(frameCount % 40 == 0)
-            std::cout << "Particle count : " << particle::count<<std::endl;
+//        if(frameCount % 40 == 0)
+//            std::cout << "Particle count : " << particle::count<<std::endl;
     }
     else if( _scenario == SCENARIO_RAIN && particle::count < MAX_PARTICLES && frameCount % 20 == 0)//&& frameCount % 5 == 0
         makeItRain();
 
     std::swap(grid,nextGrid);
     updateGrid();
+
+    if(_marchingCube)
+        computeSurface();
     ++frameCount;
 }
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // Calculate the acceleration of each particle using a grid optimized approach.
 // For each particle, only particles in the same grid cell and the (27) neighboring grid cells must be considered,

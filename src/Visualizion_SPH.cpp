@@ -35,32 +35,46 @@ void arUtilTimerReset(void);
 ///////////////////////////////////////////////////////////////////////
 void drawAxes()
 {
-  //glDisable(GL_COLOR_MATERIAL);
-  // draw coordinate axes
-  glPushMatrix();
-  glTranslatef(-0.1f, -0.1f, -0.1f);
-  glLineWidth(3.0f);
-  glBegin(GL_LINES);
-  // x axis is red
-  glColor4f(10.0f, 0.0f, 0.0f, 1.0f);
-  glVertex3f(0.0f, 0.0f, 0.0f);
-  glColor4f(10.0f, 0.0f, 0.0f, 0.0f);
-  glVertex3f(1.0f, 0.0f, 0.0f);
+ //glDisable(GL_COLOR_MATERIAL);
+ // draw coordinate axes
+ glPushMatrix();
+ glTranslatef(-0.1f, -0.1f, -0.1f);
+ glLineWidth(3.0f);
+ glBegin(GL_LINES);
+ // x axis is red
+ glColor4f(10.0f, 0.0f, 0.0f, 1.0f);
+ glVertex3f(0.0f, 0.0f, 0.0f);
+ glColor4f(10.0f, 0.0f, 0.0f, 0.0f);
+ glVertex3f(1.0f, 0.0f, 0.0f);
 
-  // y axis is green
-  glColor4f(0.0f, 10.0f, 0.0f, 1.0f);
-  glVertex3f(0.0f, 0.0f, 0.0f);
-  glColor4f(0.0f, 10.0f, 0.0f, 0.0f);
-  glVertex3f(0.0f, 1.0f, 0.0f);
+ // y axis is green
+ glColor4f(0.0f, 10.0f, 0.0f, 1.0f);
+ glVertex3f(0.0f, 0.0f, 0.0f);
+ glColor4f(0.0f, 10.0f, 0.0f, 0.0f);
+ glVertex3f(0.0f, 1.0f, 0.0f);
 
-  // z axis is blue
-  glColor4f(0.0f, 0.0f, 10.0f, 1.0f);
-  glVertex3f(0.0f, 0.0f, 0.0f);
-  glColor4f(0.0f, 0.0f, 10.0f, 0.0f);
-  glVertex3f(0.0f, 0.0f, 1.0f);
-  glEnd();
-  glLineWidth(1.0f);
-  glPopMatrix();
+ // z axis is blue
+ glColor4f(0.0f, 0.0f, 10.0f, 1.0f);
+ glVertex3f(0.0f, 0.0f, 0.0f);
+ glColor4f(0.0f, 0.0f, 10.0f, 0.0f);
+ glVertex3f(0.0f, 0.0f, 1.0f);
+ glEnd();
+ glLineWidth(1.0f);
+
+ // draw frame rate
+ glRasterPos2f(0.3f, 1.5f);
+ glColor3f(0.0f, 0.0f, 0.0f);
+ string framerate= "*** " +  std::to_string((double)iterationCount/arUtilTimer()) + "(frame/sec) *** ";
+ //cout<< "frame rate:::: " << buffer << endl;
+ char *c = const_cast<char*>(framerate.c_str());
+ for (char *p=c; *p; p++)
+ {
+   glScalef(1,-1,1);
+   glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *p);
+ }
+
+ glPopMatrix();
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -173,10 +187,12 @@ void keyboardCallback(unsigned char key, int x, int y)
       particleSystem->toggleShowSpash();
       cout << "coucou"<<endl;
       break;
-//    case '.':
-//      particleSystem->toggleArrows();
-//      break;
-
+    case 'm':
+      particleSystem->toggleMarchingGrid();
+      break;
+    case 'M':
+      particleSystem->toogleMarchingCube();
+      break;
     case 't':
       particleSystem->toggleTumble();
       break;

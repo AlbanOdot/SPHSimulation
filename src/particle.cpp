@@ -9,11 +9,10 @@ VEC3F purpleColor(0.88,0.08,0.88);
 
 int count = 0;
 
-#define PARTICLE_DRAW_RADIUS 0.015 //0.015//0.01 //
-#define h 0.0457
 bool particle::isSurfaceVisible = false;
 bool particle::showArrows = false;
 bool particle::showSplash = false;
+bool particle::display = true;
 unsigned int particle::count = 0;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,13 +42,8 @@ _position(position), _velocity(velocity), _acceleration(VEC3F()),_mass(0.0457)
 ///////////////////////////////////////////////////////////////////////////////
 void particle::draw()
 {
-  /*
-  if (_flag) 
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, red);
-  else 
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, blue);
-  */
-  
+  if(!display)
+      return;
 
   if (_flag && isSurfaceVisible)
     glMaterialfv(GL_FRONT, GL_DIFFUSE, purpleColor);
@@ -60,46 +54,8 @@ void particle::draw()
   if(_splash && showSplash)
          glMaterialfv(GL_FRONT, GL_DIFFUSE, green);
   glPushMatrix();
-    glTranslated(_position[0], _position[1], _position[2]);
-  
-    
-    if (showArrows) {
-      // scale
-      
-      //glColor3f(0.2f,0.3f,0.6f);
-      if (!myQuadric) {
-        myQuadric = gluNewQuadric();
-        gluQuadricDrawStyle(myQuadric, GLU_FILL); 
-        gluQuadricNormals(myQuadric, GLU_SMOOTH);
-      }
-      
-      
-      
-      float angle1 = asin(_velocity[0]) * 180.0 / M_PI;
-      float angle2 = asin(_velocity[1]) * 180.0 / M_PI;
-      //float angle3 = asin(_velocity[2]) * 180.0 / M_PI;
-      
-      
-      glRotatef(-angle1, 0, 1, 0);
-      glRotatef(-angle2, 1, 0, 0);
-      //glRotatef(-angle3, 0, 0, 1);
-      
-      gluCylinder(myQuadric, 0.001, 0.001, 0.01, 10, 10);
-      glTranslated(0.00, 0.01, 0.00);
-      glutSolidCone(0.003, 0.01, 10, 10);
-      
-      glFlush();        
-      
-      //;
-    }
-    else {
-        if( _flag && isSurfaceVisible)
-            glutSolidSphere(PARTICLE_DRAW_RADIUS, 10, 10);
-        else
-            glutSolidSphere(PARTICLE_DRAW_RADIUS, 10, 10);
-
-    }
-  
+  glTranslated(_position[0], _position[1], _position[2]);
+  glutSolidSphere(PARTICLE_DRAW_RADIUS, 10, 10);
   glPopMatrix();
 }
 

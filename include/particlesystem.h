@@ -8,6 +8,7 @@
 #include <vector>
 #include "field_3D.h"
 #include "simulation.h"
+#include "marchingpoint.h"
 
 #define h 0.0457 //0.0457 0.02 //0.045
 
@@ -71,11 +72,20 @@ public:
 
     void toggleShowSpash();
 
+    void toggleMarchingGrid();
+
+    void toogleMarchingCube();
+
+    void computeSurface();
+
     void generateFaucetParticleSet();
 
     void generateCubeParticleSet();
 
     void generateDamParticleSet();
+
+    void generateSurfaceGrid();
+
     void fatCube();
 
     void makeItRain();
@@ -95,8 +105,10 @@ public:
     inline int scenario() const { return _scenario;}
     void loadScenario(int scenario);
 
-    FIELD_3D* grid;
-    FIELD_3D* nextGrid;
+    FIELD_3D<>* grid;
+    FIELD_3D<>* nextGrid;
+    FIELD_3D<MarchingPoint>* surfaceGrid;
+
     float surfaceThreshold;
     VEC3F gravityVector;
 
@@ -112,9 +124,12 @@ private:
     float particleMass;
     float dt;
 
+
     //unsigned int _particleCount;
     bool _isGridVisible;
     bool _tumble;
+    bool _marchingGrid;
+    bool _marchingCube;
 
     VEC3F boxSize;
 

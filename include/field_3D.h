@@ -8,17 +8,26 @@
 
 using namespace std;
 
+template < class T = particle>
 class FIELD_3D {
   
-  typedef vector<particle> particleVector;
+  typedef vector<T> TVector;
   
 public:
   
-  FIELD_3D();
-  FIELD_3D(int xRes, int yRes, int zRes);
-  virtual ~FIELD_3D();
+  FIELD_3D():_xRes(0), _yRes(0), _zRes(0), _data(NULL){}
+
+  FIELD_3D(int xRes, int yRes, int zRes) : _xRes(xRes), _yRes(yRes), _zRes(zRes), _cellCount(xRes*yRes*zRes)
+  {
+    _data = new TVector[_xRes * _yRes * _zRes];
+  }
+
+  virtual ~FIELD_3D()
+  {
+    if (_data) delete[] _data;
+  }
   
-  inline particleVector& operator()(int x, int y, int z) {
+  inline TVector& operator()(int x, int y, int z) {
     
     /*
      
@@ -34,11 +43,11 @@ public:
   }
   
   // accessors
-  int xRes() const { return _xRes; };
-  int yRes() const { return _yRes; };
-  int zRes() const { return _zRes; };
-  int cellCount() const { return _cellCount; };
-  particleVector* data() const { return _data; };
+  int xRes() const { return _xRes; }
+  int yRes() const { return _yRes; }
+  int zRes() const { return _zRes; }
+  int cellCount() const { return _cellCount; }
+  TVector* data() const { return _data; }
   
 private:
   
@@ -47,7 +56,7 @@ private:
   int _zRes;
   int _cellCount;
   
-  particleVector* _data;
+  TVector* _data;
   
 };
 
